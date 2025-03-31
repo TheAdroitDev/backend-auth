@@ -110,27 +110,30 @@ const verifyUser = async function (req, res) {
     const { token } = req.params;
     console.log(token);
 
-    //validate
+    // validate
     if (!token) {
-        res.status(400).json({
+        return res.status(400).json({
             message: "Invalid token",
         });
     }
 
-    // find user based on token in db
+    // find user based on token
     const user = await User.findOne({ verificationToken: token });
-    console.log(user);
-    
 
+    // if not handle edge case 
     if (!user) {
-        res.status(400).json({
+        return res.status(400).json({
             message: "User not registered",
-            success: false
-        })
+        });
     }
+    // set isVerified field to true
+    user.isVerified = true
 
-    user.isVerified = true;
-    user.verificationToken = undefined
+    // remove verification token
+    user.verificationToken = undefined;
+
+    // save
+    await user.save();
 
     // return response
     res.status(210).json({
@@ -140,4 +143,83 @@ const verifyUser = async function (req, res) {
     console.log('User Verified successfully!');
 
 }
-export { registerUser, verifyUser };
+
+const login = async function (req, res) {
+    // get data
+    const { email, password } = req.body;
+
+    // validate
+    if (!email || !password) {
+        res.status(400).json({
+            message: "All fields are required",
+            success: false
+        })
+    }
+
+    try {
+        const user = await User.findOne({ email })
+        if (!user) {
+            res.status(400).json({
+                message: "User not registered",
+                success: false
+            })
+        }
+
+        // compare password 
+        const isMatch = bcrypt.compare(password, user.password);
+        console.log(isMatch);
+
+        if (!isMatch) {
+            res.status(400).json({
+                message: "Invalid password",
+                success: false
+            })
+        }
+
+        // create token
+        const token = jwt
+            .sign(
+                {
+                    id: user.id,
+                    role: user.role
+                },
+                process.env.JWTSECRET.toString(),
+                {
+                    expiresIn: "12h"
+                }
+            );
+
+        // set cookies
+        const cookieOptions = {
+            httpOnly: true,
+            secure: true,
+            maxAge: 24 * 60 * 60 * 1000
+        }
+
+        res.cookie("token", token, cookieOptions);
+
+        // return status
+        res.status(202).json({
+            message: "Login Successfull!",
+            success: true,
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                role: user.role
+            }
+        });
+
+        console.log('Login Successfull!');
+
+    } catch (error) {
+        console.log('Internal server error while logging', error);
+        res.status(500).json({
+            message: "Internal Server error while logging",
+            success: false,
+            error,
+        })
+    }
+
+}
+export { registerUser, verifyUser,login };
