@@ -166,7 +166,7 @@ const login = async function (req, res) {
         }
 
         // compare password 
-        const isMatch = bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         console.log(isMatch);
 
         if (!isMatch) {
