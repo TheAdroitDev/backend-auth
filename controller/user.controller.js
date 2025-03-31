@@ -80,7 +80,7 @@ const registerUser = async (req, res) => {
                     Verify Email
                 </a>
                 <p>If the button doesn't work, copy and paste the following link into your browser:</p>
-                <p><a href="${process.env.BASE_URL}/api/v1/users/verify/${token}">
+                <p><a href="${process.env.BASE_URL}api/v1/users/verify/:${token}">
                     ${process.env.BASE_URL}/api/v1/users/verify/${token}
                 </a></p>
             `,
@@ -107,7 +107,7 @@ const registerUser = async (req, res) => {
 
 const verifyUser = async function (req, res) {
     // get token from url
-    const token = req.params;
+    const { token } = req.params;
     console.log(token);
 
     //validate
@@ -119,6 +119,8 @@ const verifyUser = async function (req, res) {
 
     // find user based on token in db
     const user = await User.findOne({ verificationToken: token });
+    console.log(user);
+    
 
     if (!user) {
         res.status(400).json({
@@ -129,5 +131,13 @@ const verifyUser = async function (req, res) {
 
     user.isVerified = true;
     user.verificationToken = undefined
+
+    // return response
+    res.status(210).json({
+        message: "User Verified successfully!",
+        success: true
+    })
+    console.log('User Verified successfully!');
+
 }
-export { registerUser };
+export { registerUser, verifyUser };
